@@ -20,21 +20,10 @@ Bar - Waybar
 
 <h3> Install this on a barebones Arch Linux installation </h3>
 
-1) Install Git
-```bash
-sudo pacman -Sy git
-```
-
-2) Clone Git Repository
-```bash
-git clone https://github.com/AegisCat/dotfiles-hyprland-arch.git
-```
-
-3) Run install.sh
-```bash
+```shell
+pacman -Sy git
+git clone --depth 1 https://github.com/AegisCat/dotfiles-hyprland-arch.git ~/dotfiles-hyprland-arch
 cd ~/dotfiles-hyprland-arch/Scripts
-```
-```bash
 ./install.sh
 ```
 
