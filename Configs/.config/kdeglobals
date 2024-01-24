@@ -1,3 +1,6 @@
+[$Version]
+update_info=filepicker.upd:filepicker-remove-old-previews-entry
+
 [General]
 TerminalApplication=kitty
 
@@ -18,5 +21,5 @@ Sort by=Name
 Sort directories first=true
 Sort hidden files last=false
 Sort reversed=false
-Speedbar Width=142
+Speedbar Width=147
 View Style=DetailTree

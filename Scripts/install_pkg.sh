@@ -6,7 +6,7 @@
 
 source global_fn.sh
 if [ $? -ne 0 ] ; then
-    echo "Error: unable to source global_fn.sh, please execute from $(dirname $(realpath $0))..."
+    echo "Error: unable to source global_fn.sh, please execute from $(dirname "$(realpath "$0")")..."
     exit 1
 fi
 
@@ -35,9 +35,35 @@ if [ -z $aurhlpr ]
 fi
 
 install_list="${1:-install_pkg.lst}"
+ofs=$IFS
+IFS='|'
 
-while read pkg
+while read -r pkg deps
 do
+    pkg="${pkg// /}"
+    if [ -z "${pkg}" ] ; then
+        continue
+    fi
+
+    if [ ! -z "${deps}" ] ; then
+        while read -r cdep
+        do
+            pass=$(cut -d '#' -f 1 ${install_list} | awk -F '|' -v chk="${cdep}" '{if($1 == chk) {print 1;exit}}')
+            if [ -z "${pass}" ] ; then
+                if pkg_installed ${cdep} ; then
+                    pass=1
+                else
+                    break
+                fi
+            fi
+        done < <(echo "${deps}" | xargs -n1)
+
+        if [[ ${pass} -ne 1 ]] ; then
+            echo "skipping ${pkg} due to missing (${deps}) dependency..."
+            continue
+        fi
+    fi
+
     if pkg_installed ${pkg}
         then
         echo "skipping ${pkg}..."
@@ -55,16 +81,18 @@ do
     else
         echo "error: unknown package ${pkg}..."
     fi
-done < $install_list
+done < <( cut -d '#' -f 1 $install_list )
+
+IFS=${ofs}
 
 if [ `echo $pkg_arch | wc -w` -gt 0 ]
-then
+    then
     echo "installing $pkg_arch from arch repo..."
     sudo pacman ${use_default} -S $pkg_arch
 fi
 
 if [ `echo $pkg_aur | wc -w` -gt 0 ]
-then
+    then
     echo "installing $pkg_aur from aur..."
     $aurhlpr ${use_default} -S $pkg_aur
 fi

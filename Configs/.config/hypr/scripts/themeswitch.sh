@@ -1,9 +1,8 @@
 #!/usr/bin/env sh
 
 # set variables
-BaseDir=`dirname $(realpath $0)`
-ConfDir="$HOME/.config"
-ThemeCtl="$ConfDir/swww/wall.ctl"
+ScrDir=`dirname "$(realpath "$0")"`
+source "${ScrDir}/globalcontrol.sh"
 
 
 # evaluate options
@@ -11,7 +10,7 @@ while getopts "npst" option ; do
     case $option in
 
     n ) # set next theme
-        ThemeSet=`head -1 $ThemeCtl | cut -d '|' -f 2` #default value
+        ThemeSet=`head -1 "$ThemeCtl" | cut -d '|' -f 2` #default value
         flg=0
         while read line
         do
@@ -21,11 +20,11 @@ while getopts "npst" option ; do
             elif [ `echo $line | cut -d '|' -f 1` -eq 1 ] ; then
                 flg=1
             fi
-        done < $ThemeCtl
-        export xtrans="center" ;;
+        done < "$ThemeCtl"
+        export xtrans="grow" ;;
 
     p ) # set previous theme
-        ThemeSet=`tail -1 $ThemeCtl | cut -d '|' -f 2` #default value
+        ThemeSet=`tail -1 "$ThemeCtl" | cut -d '|' -f 2` #default value
         flg=0
         while read line
         do
@@ -35,7 +34,7 @@ while getopts "npst" option ; do
             elif [ `echo $line | cut -d '|' -f 1` -eq 1 ] ; then
                 flg=1
             fi
-        done < <( tac $ThemeCtl )
+        done < <( tac "$ThemeCtl" )
         export xtrans="outer" ;;
 
     s ) # set selected theme
@@ -58,23 +57,26 @@ done
 
 
 # update theme control
-if [ `cat $ThemeCtl | awk -F '|' -v thm=$ThemeSet '{if($2==thm) print$2}' | wc -w` -ne 1 ] ; then
+if [ `cat "$ThemeCtl" | awk -F '|' -v thm=$ThemeSet '{if($2==thm) print$2}' | wc -w` -ne 1 ] ; then
     echo "Unknown theme selected: $ThemeSet"
     echo "Available themes are:"
-    cat $ThemeCtl | cut -d '|' -f 2
+    cat "$ThemeCtl" | cut -d '|' -f 2
     exit 1
 else
     echo "Selected theme: $ThemeSet"
-    sed -i "s/^1/0/g" $ThemeCtl
-    awk -F '|' -v thm=$ThemeSet '{OFS=FS} {if($2==thm) $1=1; print$0}' $ThemeCtl > $BaseDir/tmp && mv $BaseDir/tmp $ThemeCtl
+    sed -i "s/^1/0/g" "$ThemeCtl"
+    awk -F '|' -v thm=$ThemeSet '{OFS=FS} {if($2==thm) $1=1; print$0}' "$ThemeCtl" > "${ScrDir}/tmp" && mv "${ScrDir}/tmp" "$ThemeCtl"
 fi
 
 
 # swwwallpaper
-getWall=`grep '^1|' $ThemeCtl | cut -d '|' -f 3`
-getWall=`eval echo $getWall`
-ln -fs $getWall $ConfDir/swww/wall.set
-$ConfDir/hypr/scripts/swwwallpaper.sh
+getWall=`grep '^1|' "$ThemeCtl" | awk -F '|' '{print $NF}'`
+getWall=`eval echo "$getWall"`
+getName=`basename "$getWall"`
+ln -fs "$getWall" "$ConfDir/swww/wall.set"
+ln -fs "$cacheDir/${ThemeSet}/${getName}.rofi" "$ConfDir/swww/wall.rofi"
+ln -fs "$cacheDir/${ThemeSet}/${getName}.blur" "$ConfDir/swww/wall.blur"
+"${ScrDir}/swwwallpaper.sh"
 
 if [ $? -ne 0 ] ; then
     echo "ERROR: Unable to set wallpaper"
@@ -83,12 +85,23 @@ fi
 
 
 # code
-sed -i "/workbench.colorTheme/c\    \"workbench.colorTheme\": \"${ThemeSet}\"," $ConfDir/Code/User/settings.json
+if [ ! -z "$(grep '^1|' "$ThemeCtl" | awk -F '|' '{print $3}')" ] ; then
+    codex=$(grep '^1|' "$ThemeCtl" | awk -F '|' '{print $3}' | cut -d '~' -f 1)
+    if [ $(code --list-extensions |  grep -iwc "${codex}") -eq 0 ] ; then
+        code --install-extension "${codex}" 2> /dev/null
+    fi
+    codet=$(grep '^1|' "$ThemeCtl" | awk -F '|' '{print $3}' | cut -d '~' -f 2)
+    jq --arg codet "${codet}" '.["workbench.colorTheme"] |= $codet' "$ConfDir/Code/User/settings.json" > tmpvsc && mv tmpvsc "$ConfDir/Code/User/settings.json"
+fi
 
 
 # kitty
 ln -fs $ConfDir/kitty/themes/${ThemeSet}.conf $ConfDir/kitty/themes/theme.conf
 killall -SIGUSR1 kitty
+
+
+# kvantum QT
+kvantummanager --set "${ThemeSet}"
 
 
 # qt5ct
@@ -102,13 +115,14 @@ sed -i "/^gtk-theme-name=/c\gtk-theme-name=${ThemeSet}" $ConfDir/gtk-3.0/setting
 sed -i "/^gtk-icon-theme-name=/c\gtk-icon-theme-name=${IconSet}" $ConfDir/gtk-3.0/settings.ini
 
 
+# gtk4
+rm $ConfDir/gtk-4.0
+ln -s /usr/share/themes/$ThemeSet/gtk-4.0 $ConfDir/gtk-4.0
+
+
 # flatpak GTK
 flatpak --user override --env=GTK_THEME="${ThemeSet}"
 flatpak --user override --env=ICON_THEME="${IconSet}"
-
-
-# rofi
-ln -fs $ConfDir/rofi/themes/${ThemeSet}.rasi $ConfDir/rofi/themes/theme.rasi
 
 
 # hyprland
@@ -116,17 +130,6 @@ ln -fs $ConfDir/hypr/themes/${ThemeSet}.conf $ConfDir/hypr/themes/theme.conf
 hyprctl reload
 
 
-# send notification
-gtkMode=`gsettings get org.gnome.desktop.interface color-scheme | sed "s/'//g" | awk -F '-' '{print $2}'`
-ncolor="-h string:bgcolor:#191724 -h string:fgcolor:#faf4ed -h string:frcolor:#56526e"
-
-if [ "${gtkMode}" == "light" ] ; then
-    ncolor="-h string:bgcolor:#f4ede8 -h string:fgcolor:#9893a5 -h string:frcolor:#908caa"
-fi
-
-dunstify $ncolor "theme" -a "    ${ThemeSet}" -i "~/.config/dunst/icons/hyprdots.png" -r 91190 -t 2200
-
-
-# waybar
-$ConfDir/waybar/wbarconfgen.sh
+# wallbash
+"${ScrDir}/swwwallbash.sh" "$getWall"
 
