@@ -27,8 +27,7 @@ cd ~/dotfiles-hyprland-arch/Scripts
 ./install.sh
 ```
 
-
 ## Credits
 
 These dots were built upon [prasanthrangan's](https://github.com/prasanthrangan)
-work
+work. I also may have butchered it by targetting only Catppuccin Mocha
