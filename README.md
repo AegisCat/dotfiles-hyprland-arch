@@ -13,8 +13,8 @@ Bar - Waybar
 
 ## Screenshots
 
-![ss1](https://github.com/AegisCat/dotfiles-hyprland-arch/blob/main/Misc/ss1.png)
-![ss2](https://github.com/AegisCat/dotfiles-hyprland-arch/blob/main/Misc/ss2.png)
+![ss1](https://github.com/AegisCat/dotfiles-hyprland-arch/blob/main/240124_02h02m17s_screenshot.png)
+![ss2](https://github.com/AegisCat/dotfiles-hyprland-arch/blob/main/240124_02h03m09s_screenshot.png)
 
 ## Install Guide
 
